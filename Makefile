@@ -34,7 +34,7 @@ up:
 	docker compose up -d --build
 	@sleep 2
 	$(MAKE) migrate
-	@echo "→ open http://localhost:8080"
+	@echo "→ open http://localhost:18081"
 
 down:
 	docker compose down

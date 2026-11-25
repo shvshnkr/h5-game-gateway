@@ -3,7 +3,7 @@
 # Assumes the compose stack is up (make up) and nginx listens on :8080.
 set -euo pipefail
 
-BASE="${BASE:-http://localhost:8080}"
+BASE="${BASE:-http://127.0.0.1:18081}"
 SECRET="${OPERATOR_SECRET:-dev-operator-secret}"
 USER="smoke-$(date +%s)"
 

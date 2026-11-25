@@ -45,8 +45,15 @@ Full sequence diagrams: [docs/architecture.md](docs/architecture.md). Wire contr
 make up          # docker compose: mysql, redis, gateway, provider-mock, nginx
 make migrate     # apply SQL migrations
 make smoke       # end-to-end: register → deposit → launch → play a round
-open http://localhost:8080
+open http://localhost:18081
 ```
+
+> Port note: nginx is published as `127.0.0.1:18081:80` — IPv4-only. Docker
+> Desktop's IPv6 loopback forwarding is broken on some Windows hosts (a
+> dllhost.exe shadow listener resets `[::1]` connections), which makes
+> `localhost` fail intermittently in browsers if the port is published
+> dual-stack. IPv4-only binding + Chromium's automatic IPv4 fallback avoids
+> that.
 
 Then open the site on a phone (or Chrome DevTools mobile view) → "Add to home screen".
 
