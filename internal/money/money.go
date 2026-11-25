@@ -4,6 +4,8 @@
 // never used for storage or arithmetic on balances.
 package money
 
+import "math"
+
 // Scale is the number of decimal places stored in minor units.
 const Scale = 4
 
@@ -11,9 +13,9 @@ const Scale = 4
 const Unit int64 = 10000
 
 // FromFloat converts a user/API supplied float (e.g. 12.3456) into minor
-// units with round-half-away-from-zero on the 4th decimal.
+// units, rounding half away from zero (math.Round handles negatives).
 func FromFloat(v float64) int64 {
-	return int64(v*float64(Unit) + 0.5)
+	return int64(math.Round(v * float64(Unit)))
 }
 
 // ToFloat renders minor units as a float for API payloads.

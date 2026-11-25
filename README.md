@@ -9,7 +9,7 @@ H5 mobile game platform gateway with a PG-Soft-style seamless-wallet provider in
 | Piece | What's inside |
 |---|---|
 | **Seamless wallet (operator side)** | Signed callbacks a game provider calls on every bet/settle: `balance`, `withdraw` (bets), `deposit` (payouts), `pushbetdata` — with signature verification, idempotent transactions (unique provider tx ids), row-locked wallet updates and a double-entry ledger |
-| **Provider integration client** | Signed `launch-game` / `provider-games` calls returning H5 game URLs, retries and timeouts |
+| **Provider integration client** | Two provider dialects behind one config flag (`PROVIDER_STYLE`): **GSC+-style** seamless wallet (signed JSON callbacks) and **PG Soft agent API** (`GetLaunchURLHTML`, `Cash/Get`, `Cash/TransferInOut` — form-urlencoded, `{data, error}` envelope, net-amount round settlement, PWS-HMAC-SHA256 optional request signing). See [docs/pgsoft-api.md](docs/pgsoft-api.md) |
 | **Provider mock** | A fake PG-style provider: game catalog, session tokens, provably-fair RNG (HMAC-SHA256 server seed / client seed / nonce, seed hash published before play), two playable H5 mini-games (Lucky Dice, Mini Crash) |
 | **Player wallet & payments** | Register/login (JWT + bcrypt), balance, deposit via a mock crypto-payment webhook (the Bitcart-style pattern), withdraw |
 | **PWA shell** | manifest + service worker → installs to the phone desktop, lobby, iframe game launch |

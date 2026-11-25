@@ -20,6 +20,7 @@ type session struct {
 	MemberAccount string
 	GameCode   string
 	Currency   string
+	Style      string // "gsc" | "pgsoft" — settlement contract used for this session
 	Fairness   Fairness
 	ClientSeed string
 	Nonce      int64
@@ -42,7 +43,14 @@ type Config struct {
 	OperatorSecret string
 	CallbackBase string // operator gateway /seamless base url
 	PublicBase   string // optional absolute base for launch urls
+
+	// PG Soft agent credentials (mirrored with the gateway).
+	PGOperatorCode  string
+	PGOperatorToken string
+	PGSecretKey     string
 }
+
+func timeNow() time.Time { return time.Now() }
 
 type Stats struct {
 	mu            sync.Mutex
@@ -214,6 +222,57 @@ func (s *Server) seamlessCall(methodWord, path, memberAccount string, txs []seam
 	return out, nil
 }
 
+// betPG settles a round through the PG Soft contract: Cash/Get before the
+// round, ONE signed Cash/TransferInOut with the net amount after.
+func (s *Server) betPG(w http.ResponseWriter, sess *session, roundID string, nonce int64, in betRequest) {
+	bal, code, err := s.pgGetBalance(sess)
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]any{"error": "wallet check failed", "operator_code": code})
+		return
+	}
+	if bal < in.Amount {
+		writeJSON(w, http.StatusOK, map[string]any{"error": "insufficient balance", "operator_code": "3003"})
+		return
+	}
+
+	roll := Roll(sess.Fairness.ServerSeed, in.ClientSeed, nonce)
+	var win bool
+	var multiplier, payout float64
+	switch sess.GameCode {
+	case "crash":
+		cp := CrashPoint(roll)
+		if in.Target >= 1.01 && in.Target <= cp {
+			win = true
+			multiplier = in.Target
+		}
+	default: // dice
+		win, multiplier = DiceRound(roll, in.WinUnder)
+	}
+	if win {
+		payout = float64(int64(in.Amount*10000)) * multiplier / 10000.0
+	}
+
+	newBal, pgCode, err := s.pgSettle(sess, roundID, in.Amount, payout)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]any{
+			"error": "operator rejected settlement", "operator_code": pgCode, "operator_message": err.Error(),
+		})
+		return
+	}
+
+	s.mu.Lock()
+	s.stats.RoundsServed++
+	s.stats.BetMinorSum += in.Amount
+	s.stats.WinMinorSum += payout
+	s.mu.Unlock()
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"round_id": roundID, "roll": roll, "nonce": nonce,
+		"win": win, "multiplier": multiplier, "payout": payout, "balance": newBal,
+		"fairness": map[string]string{"server_seed_hash": sess.Fairness.ServerSeedHash},
+	})
+}
+
 // bet plays one round: debit via seamless withdraw, resolve by provably
 // fair roll, credit wins via seamless deposit, push audit data.
 func (s *Server) bet(w http.ResponseWriter, r *http.Request) {
@@ -232,6 +291,7 @@ func (s *Server) bet(w http.ResponseWriter, r *http.Request) {
 	sess.Nonce++
 	nonce := sess.Nonce
 	sess.ClientSeed = in.ClientSeed
+	style := sess.Style
 	s.mu.Unlock()
 
 	amountMinor := int64(in.Amount * 10000)
@@ -240,6 +300,11 @@ func (s *Server) bet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	roundID := fmt.Sprintf("%s-%d", sess.Token[:8], nonce)
+
+	if style == "pgsoft" {
+		s.betPG(w, sess, roundID, nonce, in)
+		return
+	}
 	txID := fmt.Sprintf("%s-%d", sess.Token[:12], nonce)
 
 	// 1. debit the bet

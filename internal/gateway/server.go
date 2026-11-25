@@ -16,6 +16,7 @@ type Server struct {
 	auth     *authHandler
 	wallet   *walletAPI
 	seam     *seamless
+	pg       *pgsoft
 	adm      *admin
 	provider *providerClient
 	rdb      *redis.Client
@@ -29,6 +30,7 @@ func NewServer(cfg Config, store *Store) *Server {
 		auth:     &authHandler{store: store, secret: []byte(cfg.JWTSecret)},
 		wallet:   &walletAPI{store: store, cfg: cfg, secret: []byte(cfg.JWTSecret)},
 		seam:     &seamless{store: store, cfg: cfg},
+		pg:       &pgsoft{store: store, cfg: cfg},
 		adm:      &admin{store: store, token: cfg.AdminToken},
 		provider: newProviderClient(cfg),
 		rdb:      rdb,
@@ -51,11 +53,18 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/games", requireAuth([]byte(s.cfg.JWTSecret), s.games))
 	mux.HandleFunc("POST /api/games/launch", requireAuth([]byte(s.cfg.JWTSecret), s.launch))
 
-	// seamless wallet — called by the provider, signed, no JWT
+	// seamless wallet — called by the provider, signed, no JWT (GSC-style)
 	mux.HandleFunc("POST /seamless/balance", s.seam.balance)
 	mux.HandleFunc("POST /seamless/withdraw", s.seam.withdraw)
 	mux.HandleFunc("POST /seamless/deposit", s.seam.deposit)
 	mux.HandleFunc("POST /seamless/pushbetdata", s.seam.pushBetData)
+
+	// PG Soft agent API — called by the provider, form-urlencoded (see
+	// docs/pgsoft-api.md): VerifySession, Cash/Get, Cash/TransferInOut
+	mux.HandleFunc("POST /pgsoft/verify-session", s.pg.verifySession)
+	mux.HandleFunc("POST /pgsoft/wallet", s.pg.wallet)
+	mux.HandleFunc("POST /pgsoft/bet-payout", s.pg.betPayout)
+	mux.HandleFunc("GET /pgsoft/play", s.pg.play)
 
 	// admin
 	mux.HandleFunc("GET /api/admin/stats", s.adm.stats)
@@ -79,8 +88,17 @@ func (s *Server) Handler() http.Handler {
 	return logMiddleware(handler)
 }
 
-// games proxies the provider catalog.
+// games proxies the provider catalog (style-dependent).
 func (s *Server) games(w http.ResponseWriter, r *http.Request, _ int64) {
+	if s.cfg.ProviderStyle == "pgsoft" {
+		games, err := s.pg.gamesPG(r.Context())
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"games": games})
+		return
+	}
 	games, err := s.provider.Games(r.Context())
 	if err != nil {
 		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
@@ -89,7 +107,7 @@ func (s *Server) games(w http.ResponseWriter, r *http.Request, _ int64) {
 	writeJSON(w, http.StatusOK, map[string]any{"games": games})
 }
 
-// launch proxies launch-game for the current player.
+// launch proxies launch flow for the current player (style-dependent).
 func (s *Server) launch(w http.ResponseWriter, r *http.Request, playerID int64) {
 	var in struct {
 		GameCode string `json:"game_code"`
@@ -103,13 +121,18 @@ func (s *Server) launch(w http.ResponseWriter, r *http.Request, playerID int64) 
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
 		return
 	}
-	lobby := s.cfg.ProviderBase + "/lobby-return"
-	url, err := s.provider.LaunchGame(r.Context(), p.Username, in.GameCode, lobby)
+	var url string
+	if s.cfg.ProviderStyle == "pgsoft" {
+		url, err = s.pg.launchPG(r.Context(), playerID, p.Username, in.GameCode)
+	} else {
+		lobby := s.cfg.ProviderBase + "/lobby-return"
+		url, err = s.provider.LaunchGame(r.Context(), p.Username, in.GameCode, lobby)
+	}
 	if err != nil {
 		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"url": url, "game_code": in.GameCode})
+	writeJSON(w, http.StatusOK, map[string]any{"url": url, "game_code": in.GameCode, "style": s.cfg.ProviderStyle})
 }
 
 type statusRecorder struct {

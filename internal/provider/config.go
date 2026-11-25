@@ -16,11 +16,14 @@ func env(key, def string) string {
 // operator gateway's /seamless endpoints.
 func LoadConfig() Config {
 	return Config{
-		Addr:           env("PROVIDER_ADDR", ":8082"),
-		OperatorCode:   env("OPERATOR_CODE", "DEMO"),
-		OperatorSecret: env("OPERATOR_SECRET", "dev-operator-secret"),
-		CallbackBase:   env("CALLBACK_BASE", "http://127.0.0.1:8081"),
-		PublicBase:     env("PUBLIC_PROVIDER_BASE", ""),
+		Addr:            env("PROVIDER_ADDR", ":8082"),
+		OperatorCode:    env("OPERATOR_CODE", "DEMO"),
+		OperatorSecret:  env("OPERATOR_SECRET", "dev-operator-secret"),
+		CallbackBase:    env("CALLBACK_BASE", "http://127.0.0.1:8081"),
+		PublicBase:      env("PUBLIC_PROVIDER_BASE", ""),
+		PGOperatorCode:  env("PGSOFT_OPERATOR_CODE", "PGDEMO"),
+		PGOperatorToken: env("PGSOFT_OPERATOR_TOKEN", "pg-operator-token"),
+		PGSecretKey:     env("PGSOFT_SECRET_KEY", "dev-pg-secret"),
 	}
 }
 

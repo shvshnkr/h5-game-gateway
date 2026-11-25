@@ -16,6 +16,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/operators/provider-games", s.games)
 	mux.HandleFunc("POST /api/operators/launch-game", s.launch)
 
+	// PG Soft agent API (operator-facing): GetLaunchURLHTML + GameList
+	mux.HandleFunc("POST /pgsoft/external-game-launcher/api/v1/GetLaunchURLHTML", s.pgGetLaunchURLHTML)
+	mux.HandleFunc("POST /pgsoft/api/v1/GameList", s.pgGameList)
+
 	// player-facing, session token
 	mux.HandleFunc("POST /game/api/bet", s.bet)
 	mux.HandleFunc("GET /game/api/fairness", s.fairness)

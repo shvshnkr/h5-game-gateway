@@ -39,6 +39,11 @@ services:
       OPERATOR_CODE: "DEMO"
       OPERATOR_SECRET: "dev-operator-secret"
       PROVIDER_BASE: "http://provider-mock:8082"
+      PROVIDER_STYLE: "pgsoft"
+      PGSOFT_OPERATOR_TOKEN: "pg-operator-token"
+      PGSOFT_SECRET_KEY: "dev-pg-secret"
+      PGSOFT_HASH_AUTH: "false"
+      PGSOFT_HASH_SALT: "dev-pg-salt"
     depends_on:
       mysql:
         condition: service_healthy
@@ -54,6 +59,9 @@ services:
       OPERATOR_CODE: "DEMO"
       OPERATOR_SECRET: "dev-operator-secret"
       CALLBACK_BASE: "http://gateway:8081"
+      PGSOFT_OPERATOR_CODE: "PGDEMO"
+      PGSOFT_OPERATOR_TOKEN: "pg-operator-token"
+      PGSOFT_SECRET_KEY: "dev-pg-secret"
     depends_on:
       - gateway
 
