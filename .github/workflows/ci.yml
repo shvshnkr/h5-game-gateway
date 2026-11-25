@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: gateway_test
+          MYSQL_USER: gateway
+          MYSQL_PASSWORD: gateway
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -pgateway"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+      - name: Build
+        run: go build ./...
+      - name: Vet
+        run: go vet ./...
+      - name: Unit tests
+        run: go test ./... -count=1
+      - name: Integration tests
+        env:
+          TEST_MYSQL_DSN: "gateway:gateway@tcp(127.0.0.1:3306)/gateway_test?multiStatements=true&parseTime=true"
+        run: go test ./internal/gateway/ -count=1 -v -run Integration

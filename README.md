@@ -1,5 +1,7 @@
 # h5-game-gateway
 
+[![CI](https://github.com/shvshnkr/h5-game-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/shvshnkr/h5-game-gateway/actions/workflows/ci.yml)
+
 H5 mobile game platform gateway with a PG-Soft-style seamless-wallet provider integration — a complete, runnable demo of the exact integration pattern used by slot aggregators (operator_code + secret_key, MD5-signed requests, seamless wallet callbacks, game launch URLs).
 
 **This is an educational mock.** No real money, no real game-provider accounts, no gambling license involved. The provider is simulated in-process (`provider-mock`).
