@@ -1,0 +1,72 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: gateway
+      MYSQL_USER: gateway
+      MYSQL_PASSWORD: gateway
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pgateway"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  gateway:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.gateway
+    environment:
+      GATEWAY_ADDR: ":8081"
+      MYSQL_DSN: "gateway:gateway@tcp(mysql:3306)/gateway?parseTime=true&multiStatements=true"
+      REDIS_ADDR: "redis:6379"
+      JWT_SECRET: "dev-jwt-secret"
+      ADMIN_TOKEN: "dev-admin-token"
+      OPERATOR_CODE: "DEMO"
+      OPERATOR_SECRET: "dev-operator-secret"
+      PROVIDER_BASE: "http://provider-mock:8082"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  provider-mock:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.provider
+    environment:
+      PROVIDER_ADDR: ":8082"
+      OPERATOR_CODE: "DEMO"
+      OPERATOR_SECRET: "dev-operator-secret"
+      CALLBACK_BASE: "http://gateway:8081"
+    depends_on:
+      - gateway
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "18080:80"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./web:/usr/share/nginx/html:ro
+    depends_on:
+      - gateway
+      - provider-mock
+
+volumes:
+  mysql_data:

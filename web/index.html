@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>h5-game-gateway demo</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#10141c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="/style.css?v=3">
+</head>
+<body>
+<header>
+  <h1>🎮 h5-game-gateway</h1>
+  <span id="balance" class="badge">—</span>
+</header>
+
+<section id="auth" class="card">
+  <h2>Sign in / Register</h2>
+  <input id="username" placeholder="username (3+)" autocomplete="username">
+  <input id="password" type="password" placeholder="password (6+)" autocomplete="current-password">
+  <div class="row">
+    <button onclick="register()">Register</button>
+    <button class="alt" onclick="login()">Login</button>
+  </div>
+  <small id="authmsg"></small>
+</section>
+
+<section id="wallet" class="card" hidden>
+  <h2>Wallet</h2>
+  <div class="row">
+    <input id="dep_amount" value="10.00" inputmode="decimal">
+    <button onclick="deposit()">Deposit (mock USDT)</button>
+  </div>
+  <small>Deposits confirm via a signed payment webhook — the same pattern a Bitcart/crypto-processor callback uses.</small>
+  <div id="games" class="games"></div>
+  <button class="alt" onclick="logout()">Logout</button>
+</section>
+
+<div id="gamemodal" hidden>
+  <div class="modalbar"><span id="gametitle"></span><button onclick="closeGame()">✕ close</button></div>
+  <iframe id="gameframe" title="game"></iframe>
+</div>
+
+<script src="/app.js?v=3"></script>
+</body>
+</html>

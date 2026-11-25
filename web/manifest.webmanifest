@@ -1,0 +1,12 @@
+{
+  "name": "h5-game-gateway demo",
+  "short_name": "h5games",
+  "description": "H5 game platform gateway demo (educational mock)",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#10141c",
+  "theme_color": "#10141c",
+  "icons": [
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

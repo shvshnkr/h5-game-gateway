@@ -1,0 +1,5 @@
+DROP TABLE IF EXISTS bet_pushes;
+DROP TABLE IF EXISTS deposits;
+DROP TABLE IF EXISTS ledger_entries;
+DROP TABLE IF EXISTS wallets;
+DROP TABLE IF EXISTS players;

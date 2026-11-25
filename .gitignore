@@ -1,0 +1,8 @@
+.git/
+*.exe
+*.test
+bin/
+logs/
+logs_*.log
+*.log
+.env
